@@ -60,20 +60,29 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // 16진수 문자열 반환 (길이: 40자리)
         }
 
-            // 클립보드 복사 함수 (iOS 호환성 추가: execCommand fallback)
+                // 클립보드 복사 함수 (iOS 호환성 개선: execCommand 우선 사용)
             async function copyToClipboard(text) {
+                // iOS 호환성을 위해 execCommand를 우선 시도 (Apple Developer Docs 기반)
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                textArea.style.position = 'fixed'; // 수정: 화면 밖에 위치시켜 보이지 않게
+                textArea.style.left = '-9999px';
+                document.body.appendChild(textArea);
+                textArea.focus(); // 수정: focus 추가로 select 강화
+                textArea.select();
                 try {
-                    await navigator.clipboard.writeText(text); // 우선 클립보드 API 시도
+                    const success = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    if (success) return true;
+                } catch (err) {
+                    document.body.removeChild(textArea);
+                }
+                // execCommand 실패 시 클립보드 API 시도
+                try {
+                    await navigator.clipboard.writeText(text);
                     return true;
                 } catch (err) {
-                    // iOS Safari 등에서 실패 시 execCommand 사용 (Apple Developer Docs 기반)
-                    const textArea = document.createElement('textarea');
-                    textArea.value = text;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    const success = document.execCommand('copy'); // 텍스트 선택 후 복사
-                    document.body.removeChild(textArea);
-                    return success;
+                    return false;
                 }
             }
 
@@ -92,7 +101,7 @@
                 messageDiv.classList.add('updated', 'success'); // 수정: 성공 시 초록 outline 클래스 추가
                 animationTimeout = setTimeout(() => messageDiv.classList.remove('updated', 'success'), 2000); // 수정: setTimeout ID 저장 및 2초 후 클래스 제거
             } else {
-                messageDiv.innerText = '복사 실패'; // 수정: 실패 메시지 표시
+                messageDiv.innerText = '복사 실패: iOS에서는 수동 복사를 시도하세요'; // 수정: 실패 메시지 표시 및 사용자 안내
                 if (animationTimeout) clearTimeout(animationTimeout); // 수정: 기존 애니메이션 취소
                 messageDiv.classList.remove('updated', 'success', 'failure'); // 수정: 이전 클래스 제거
                 messageDiv.classList.add('updated', 'failure'); // 수정: 실패 시 빨강 outline 클래스 추가
