@@ -37,18 +37,35 @@
             return hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // 16진수 문자열 반환 (길이: 40자리)
         }
 
+            // 클립보드 복사 함수 (iOS 호환성 추가: execCommand fallback)
+            async function copyToClipboard(text) {
+                try {
+                    await navigator.clipboard.writeText(text); // 우선 클립보드 API 시도
+                    return true;
+                } catch (err) {
+                    // iOS Safari 등에서 실패 시 execCommand 사용 (Apple Developer Docs 기반)
+                    const textArea = document.createElement('textarea');
+                    textArea.value = text;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    const success = document.execCommand('copy'); // 텍스트 선택 후 복사
+                    document.body.removeChild(textArea);
+                    return success;
+                }
+            }
+
         // 해시 복사 함수
         copyBtn.addEventListener('click', async () => {
             const prefix = prefixInput.value;
             const hash = await generateSHA1(currentNum.toString()); // 숫자를 문자열로 해시
             const fullString = prefix + hash.substring(0, 6); // 선행 문자열 + 해시 앞 6자리 결합
-            try {
-                await navigator.clipboard.writeText(fullString); // 클립보드에 복사 (HTTPS 필요)
+            const success = await copyToClipboard(fullString); // 수정: iOS 호환 클립보드 함수 사용
+            if (success) {
                 alert('복사됨: ' + fullString);
                 currentNum++; // 버튼 누를 때마다 숫자 1 증가
                 currentNumDisplay.textContent = currentNum; // 숫자 표시 업데이트
-            } catch (err) {
-                alert('클립보드 복사 실패: ' + err.message);
+            } else {
+                alert('복사 실패');
             }
         });
 
