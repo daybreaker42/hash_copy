@@ -9,17 +9,27 @@
         input, button { margin: 10px; padding: 10px; font-size: 16px; } /* 터치 친화적 크기 (모바일 표준) */
         button { background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
         button:hover { background-color: #0056b3; }
-        #currentNum { font-size: 24px; margin: 20px; }
+        #currentNum { font-size: 24px; margin: 20px; } /* ...existing code... */
+        #message { margin-top: 20px; font-size: 16px; color: green; transition: outline 0.5s ease-out; } /* 수정: outline 전환 추가 */
+        #message.updated.success { outline: 2px solid green; animation: fadeOutline 2s ease-out forwards; } /* 수정: 성공 시 초록 outline */
+        #message.updated.failure { outline: 2px solid red; animation: fadeOutline 2s ease-out forwards; } /* 수정: 실패 시 빨강 outline */
+        @keyframes fadeOutline { to { outline-color: transparent; } } /* 수정: outline fade-out 애니메이션 (MDN 기반) */
+
+        #controls { display: flex; align-items: center; } /* 숫자 조절 버튼과 현재 숫자 표시를 가로로 배치 */
+        #controls button { width: 40px; height: 40px; font-size: 24px; line-height: 24px; text-align: center; padding: 0; } /* 버튼 크기 및 스타일 */
     </style>
 </head>
 <body>
     <h1>SHA1 Hash Generator</h1>
     <label for="prefix">선행 문자열:</label>
     <input type="text" id="prefix" value="prefix" placeholder="예: prefix"> <!-- 선행 문자열 입력 필드 -->
-    <div id="currentNum">1</div> <!-- 현재 숫자 표시 -->
-    <button id="decreaseBtn">-</button> <!-- 숫자 내리기 버튼 -->
-    <button id="increaseBtn">+</button> <!-- 숫자 올리기 버튼 -->
+    <div id="controls">
+        <button id="decreaseBtn">-</button> <!-- 숫자 내리기 버튼 -->
+        <div id="currentNum">1</div> <!-- 현재 숫자 표시 -->
+        <button id="increaseBtn">+</button> <!-- 숫자 올리기 버튼 -->
+    </div>
     <button id="copyBtn">해시 복사</button> <!-- 해시 복사 버튼 -->
+    <div id="message"></div> <!-- 수정: 메시지 표시 칸 추가 -->
     <script>
         let currentNum = 1; // 현재 숫자 초기화 (startNum=1)
         const prefixInput = document.getElementById('prefix');
@@ -27,6 +37,8 @@
         const copyBtn = document.getElementById('copyBtn');
         const decreaseBtn = document.getElementById('decreaseBtn');
         const increaseBtn = document.getElementById('increaseBtn');
+                const messageDiv = document.getElementById('message'); // 수정: 메시지 div 참조 추가
+                let animationTimeout; // 수정: 애니메이션 setTimeout ID 저장 변수 추가
 
         // SHA1 해시 계산 함수 (crypto API 사용, MDN 문서 기반)
         async function generateSHA1(text) {
@@ -54,18 +66,26 @@
                 }
             }
 
-        // 해시 복사 함수
+                // 해시 복사 함수 (즉시 실행)
         copyBtn.addEventListener('click', async () => {
             const prefix = prefixInput.value;
             const hash = await generateSHA1(currentNum.toString()); // 숫자를 문자열로 해시
             const fullString = prefix + hash.substring(0, 6); // 선행 문자열 + 해시 앞 6자리 결합
             const success = await copyToClipboard(fullString); // 수정: iOS 호환 클립보드 함수 사용
             if (success) {
-                alert('복사됨: ' + fullString);
+                messageDiv.innerText = '복사됨: ' + fullString; // 수정: alert 대신 메시지 표시
                 currentNum++; // 버튼 누를 때마다 숫자 1 증가
                 currentNumDisplay.textContent = currentNum; // 숫자 표시 업데이트
+                if (animationTimeout) clearTimeout(animationTimeout); // 수정: 기존 애니메이션 취소
+                messageDiv.classList.remove('updated', 'success', 'failure'); // 수정: 이전 클래스 제거
+                messageDiv.classList.add('updated', 'success'); // 수정: 성공 시 초록 outline 클래스 추가
+                animationTimeout = setTimeout(() => messageDiv.classList.remove('updated', 'success'), 2000); // 수정: setTimeout ID 저장 및 2초 후 클래스 제거
             } else {
-                alert('복사 실패');
+                messageDiv.innerText = '복사 실패'; // 수정: 실패 메시지 표시
+                if (animationTimeout) clearTimeout(animationTimeout); // 수정: 기존 애니메이션 취소
+                messageDiv.classList.remove('updated', 'success', 'failure'); // 수정: 이전 클래스 제거
+                messageDiv.classList.add('updated', 'failure'); // 수정: 실패 시 빨강 outline 클래스 추가
+                animationTimeout = setTimeout(() => messageDiv.classList.remove('updated', 'failure'), 2000); // 수정: setTimeout ID 저장 및 2초 후 클래스 제거
             }
         });
 
