@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <!-- 모바일 반응형 설정 (W3C 가이드라인 기반) -->
+    <title>SHA1 Hash App</title>
+    <style>
+        body { font-family: Arial, sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; background-color: #f0f0f0; } /* 모바일 친화적 Flexbox 레이아웃 */
+        input, button { margin: 10px; padding: 10px; font-size: 16px; } /* 터치 친화적 크기 (모바일 표준) */
+        button { background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background-color: #0056b3; }
+        #currentNum { font-size: 24px; margin: 20px; }
+    </style>
+</head>
+<body>
+    <h1>SHA1 Hash Generator</h1>
+    <label for="prefix">선행 문자열:</label>
+    <input type="text" id="prefix" value="prefix" placeholder="예: prefix"> <!-- 선행 문자열 입력 필드 -->
+    <div id="currentNum">1</div> <!-- 현재 숫자 표시 -->
+    <button id="decreaseBtn">-</button> <!-- 숫자 내리기 버튼 -->
+    <button id="increaseBtn">+</button> <!-- 숫자 올리기 버튼 -->
+    <button id="copyBtn">해시 복사</button> <!-- 해시 복사 버튼 -->
+    <script>
+        let currentNum = 1; // 현재 숫자 초기화 (startNum=1)
+        const prefixInput = document.getElementById('prefix');
+        const currentNumDisplay = document.getElementById('currentNum');
+        const copyBtn = document.getElementById('copyBtn');
+        const decreaseBtn = document.getElementById('decreaseBtn');
+        const increaseBtn = document.getElementById('increaseBtn');
+
+        // SHA1 해시 계산 함수 (crypto API 사용, MDN 문서 기반)
+        async function generateSHA1(text) {
+            const encoder = new TextEncoder();
+            const data = encoder.encode(text);
+            const hashBuffer = await crypto.subtle.digest('SHA-1', data); // SHA1 해시 생성 (비동기)
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join(''); // 16진수 문자열 반환 (길이: 40자리)
+        }
+
+        // 해시 복사 함수
+        copyBtn.addEventListener('click', async () => {
+            const prefix = prefixInput.value;
+            const hash = await generateSHA1(currentNum.toString()); // 숫자를 문자열로 해시
+            const fullString = prefix + hash.substring(0, 6); // 선행 문자열 + 해시 앞 6자리 결합
+            try {
+                await navigator.clipboard.writeText(fullString); // 클립보드에 복사 (HTTPS 필요)
+                alert('복사됨: ' + fullString);
+                currentNum++; // 버튼 누를 때마다 숫자 1 증가
+                currentNumDisplay.textContent = currentNum; // 숫자 표시 업데이트
+            } catch (err) {
+                alert('클립보드 복사 실패: ' + err.message);
+            }
+        });
+
+        // 숫자 내리기 버튼
+        decreaseBtn.addEventListener('click', () => {
+            if (currentNum > 1) { // 최소 1로 제한
+                currentNum--;
+                currentNumDisplay.textContent = currentNum;
+            }
+        });
+
+        // 숫자 올리기 버튼
+        increaseBtn.addEventListener('click', () => {
+            currentNum++;
+            currentNumDisplay.textContent = currentNum;
+        });
+    </script>
+</body>
+</html>
